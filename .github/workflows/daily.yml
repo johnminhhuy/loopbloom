@@ -1,7 +1,9 @@
 name: daily-shorts
 on:
   schedule:
-    - cron: "7 3,11,19 * * *"
+    # Checks every hour (GitHub skips some scheduled runs, so one check is not enough).
+    # The "gap" step below only lets a run continue if the last post was >7.5h ago = ~3 posts/day.
+    - cron: "7 * * * *"
   workflow_dispatch:
     inputs:
       count:
@@ -17,16 +19,35 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gap check (scheduled runs only)
+        id: gap
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            last=$(git log -1 --format=%ct -- state.json || echo 0)
+            now=$(date +%s)
+            age=$(( now - ${last:-0} ))
+            if [ "$age" -lt 27000 ]; then
+              echo "Last post was $(( age / 60 )) min ago (< 450). Skipping this check."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
       - uses: actions/setup-python@v5
+        if: steps.gap.outputs.skip != 'true'
         with:
           python-version: "3.12"
           cache: pip
       - uses: denoland/setup-deno@v2
+        if: steps.gap.outputs.skip != 'true'
         with:
           deno-version: v2.x
-      - run: command -v ffmpeg || (sudo apt-get update -y && sudo apt-get install -y ffmpeg)
-      - run: pip install -U -r requirements.txt
+      - if: steps.gap.outputs.skip != 'true'
+        run: command -v ffmpeg || (sudo apt-get update -y && sudo apt-get install -y ffmpeg)
+      - if: steps.gap.outputs.skip != 'true'
+        run: pip install -U -r requirements.txt
       - name: Make and upload
+        if: steps.gap.outputs.skip != 'true'
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -41,6 +62,7 @@ jobs:
           mkdir -p inbox output work
           python run.py daily --count "${{ inputs.count || '1' }}" --upload
       - name: Commit state (also counts as repo activity)
+        if: steps.gap.outputs.skip != 'true'
         run: |
           git config user.name "shorts-bot"
           git config user.email "shorts-bot@users.noreply.github.com"
