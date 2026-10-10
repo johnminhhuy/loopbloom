@@ -4,14 +4,35 @@ source:
   mode: youtube          # local (inbox/ folder) | reddit | youtube
   max_seconds: 59        # skip source clips longer than this
   reddit:
-    subreddits: [funny, Unexpected, instant_regret, nonononoyes, AnimalsBeingDerps]
+    subreddits: [funny, Unexpected, instant_regret, nonononoyes]
     time: week
   youtube:
     queries:
       - "https://www.youtube.com/@FailArmy/shorts"
       - "https://www.youtube.com/@AFV/shorts"
-      - "https://www.youtube.com/@ViralHog/shorts"
+      - "https://www.youtube.com/hashtag/fails/shorts"
+      - "https://www.youtube.com/hashtag/funnyfails/shorts"
+      - "https://www.youtube.com/hashtag/instantregret/shorts"
+      - "https://www.youtube.com/hashtag/caughtoncamera/shorts"
+      - "https://www.youtube.com/hashtag/sportsfails/shorts"
+      - "https://www.youtube.com/hashtag/skateboardfails/shorts"
+      - "https://www.youtube.com/hashtag/carfails/shorts"
+      - "https://www.youtube.com/hashtag/awkwardmoments/shorts"
+      - "https://www.youtube.com/hashtag/prankgonewrong/shorts"
+      - "https://www.youtube.com/hashtag/kidsfunny/shorts"
+      - "https://www.youtube.com/hashtag/cookingfails/shorts"
+      - "https://www.youtube.com/hashtag/gymfails/shorts"
+      - "https://www.youtube.com/hashtag/diyfails/shorts"
+      - "https://www.youtube.com/hashtag/weddingfails/shorts"
+      - "https://www.youtube.com/hashtag/bloopers/shorts"
+      - "https://www.youtube.com/hashtag/plottwist/shorts"
+      - "https://www.youtube.com/hashtag/funnymoments/shorts"
+      - "https://www.youtube.com/hashtag/unexpected/shorts"
+      - "https://www.youtube.com/hashtag/funnyanimals/shorts"
     search_n: 30
+    allow_excluded_chance: 0.15   # 15% of runs ignore the exclude list, so animals still show up now and then
+    # clips whose title/tags contain these words are skipped (keeps the channel from turning into an animal channel)
+    exclude_words: [dog, puppy, puppies, doggo, cat, kitten, kitty, animal, pet, bird, horse, cow, monkey, bear, lion, duck, goat, pig, fox, baby animal, wildlife, zoo]
     creative_commons_only: false
 video:
   min_len: 8

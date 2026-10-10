@@ -107,11 +107,23 @@ def fetch_reddit(cfg, state):
 
 # ---------------------------------------------------------------- youtube
 def fetch_youtube(cfg, state):
-    """queries may be plain search words OR full YouTube URLs (a channel's /shorts tab,
-    a hashtag page, or a results?search_query=...&sp=... URL with a duration filter)."""
+    """Try up to 4 random sources from the query list until one gives a usable clip."""
+    qs = list(cfg["source"]["youtube"]["queries"])
+    random.shuffle(qs)
+    last = None
+    for q in qs[:4]:
+        try:
+            return _fetch_youtube_from(q, cfg, state)
+        except Exception as ex:
+            last = ex
+            log(f"source {q!r} gave nothing, trying another ({str(ex)[:150]})")
+    raise RuntimeError(f"no usable youtube clip in 4 tries (last: {last})")
+
+
+def _fetch_youtube_from(q, cfg, state):
+    """q may be plain search words OR a full YouTube URL (a channel's /shorts tab or a hashtag's /shorts tab)."""
     yc = cfg["source"]["youtube"]
     lo, hi = cfg["source"]["min_seconds"], cfg["source"]["max_seconds"]
-    q = random.choice(yc["queries"])
     log(f"youtube source: {q!r}")
     n = yc["search_n"]
     target = q if q.startswith("http") else f"ytsearch{n}:{q}"
@@ -125,6 +137,16 @@ def fetch_youtube(cfg, state):
             pass
     log(f"search returned {len(entries)} entries")
     fresh = [e for e in entries if e.get("id") and not state.used("yt:" + e["id"])]
+    words = yc.get("exclude_words") or []
+    if words and random.random() < float(yc.get("allow_excluded_chance", 0)):
+        log("this run: excluded topics allowed (variety)")
+        words = []
+    if words:
+        import re
+        pat = re.compile(r"\b(" + "|".join(re.escape(w) for w in words) + r")s?\b", re.I)
+        kept = [e for e in fresh if not pat.search((e.get("title") or "") + " " + " ".join(e.get("tags") or []))]
+        log(f"exclude_words removed {len(fresh) - len(kept)} of {len(fresh)} clips")
+        fresh = kept
     known = [e for e in fresh if e.get("duration") and lo <= e["duration"] <= hi]
     unknown = [e for e in fresh if not e.get("duration")]   # checked after download
     log(f"{len(known)} in {lo}-{hi}s, {len(unknown)} with unknown length")
