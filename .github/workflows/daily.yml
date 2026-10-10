@@ -1,7 +1,7 @@
 name: daily-shorts
 on:
   schedule:
-    - cron: "0 2,10,18 * * *" 
+    - cron: "7 3,11,19 * * *"
   workflow_dispatch:
     inputs:
       count:
