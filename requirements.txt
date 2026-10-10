@@ -1,0 +1,18 @@
+# core (everything the video maker needs)
+numpy
+scipy
+opencv-python-headless
+Pillow
+PyYAML
+requests
+
+# clip downloading (reddit / youtube sources + TrendWatcher video analysis)
+yt-dlp
+
+# YouTube upload only
+google-api-python-client
+google-auth
+google-auth-oauthlib
+
+# optional: Google Trends signal
+# pytrends

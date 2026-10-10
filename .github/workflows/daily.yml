@@ -1,0 +1,59 @@
+name: daily-shorts
+on:
+  schedule:
+    - cron: "17 */8 * * *"   # 3 runs/day (00:17, 08:17, 16:17 UTC)
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "Videos to make this run"
+        default: "1"
+permissions:
+  contents: write
+  actions: write
+concurrency: daily-shorts
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: command -v ffmpeg || (sudo apt-get update -y && sudo apt-get install -y ffmpeg)
+      - run: pip install -r requirements.txt
+      - name: Make and upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+          YT_COOKIES_B64: ${{ secrets.YT_COOKIES_B64 }}
+        run: |
+          if [ -n "$YT_COOKIES_B64" ]; then printf '%s' "$YT_COOKIES_B64" | base64 -d > cookies.txt;
+          elif [ -n "$YT_COOKIES" ]; then printf '%s' "$YT_COOKIES" > cookies.txt; fi
+          mkdir -p inbox output work
+          python run.py daily --count "${{ inputs.count || '1' }}" --upload
+      - name: Commit state (also counts as repo activity)
+        run: |
+          git config user.name "shorts-bot"
+          git config user.email "shorts-bot@users.noreply.github.com"
+          git add state.json template.json 2>/dev/null || true
+          git commit -m "state: $(date -u +%F-%H)" || exit 0
+          git push
+      - name: Keep schedule alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/daily.yml/enable" || true
+      - name: Alert on failure
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -n "$WEBHOOK" ]; then
+            curl -s -H "Content-Type: application/json" -d "{\"content\":\"ShortsBot run failed: $RUN_URL\"}" "$WEBHOOK"
+          fi
