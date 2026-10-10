@@ -7,7 +7,7 @@ PyYAML
 requests
 
 # clip downloading (reddit / youtube sources + TrendWatcher video analysis)
-yt-dlp
+yt-dlp[default]
 
 # YouTube upload only
 google-api-python-client

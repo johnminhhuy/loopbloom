@@ -143,7 +143,7 @@ def fetch_youtube(cfg, state):
                 log(f"skip {e['id']}: {d:.0f}s is outside {lo}-{hi}s")
                 continue
         except Exception as ex:
-            log(f"skip {e['id']}: {str(ex)[:120]}")
+            log(f"skip {e['id']}: {' | '.join(str(ex).splitlines()[1:])[-400:] or str(ex)[:200]}")
             continue
         who = e.get("channel") or e.get("uploader") or "unknown"
         return Clip(id="yt:" + e["id"], path=path, title=e.get("title", ""),
