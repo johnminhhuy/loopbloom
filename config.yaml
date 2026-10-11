@@ -8,27 +8,21 @@ source:
     time: week
   youtube:
     queries:
-      - "https://www.youtube.com/@FailArmy/shorts"
-      - "https://www.youtube.com/@AFV/shorts"
-      - "https://www.youtube.com/hashtag/fails/shorts"
-      - "https://www.youtube.com/hashtag/funnyfails/shorts"
-      - "https://www.youtube.com/hashtag/instantregret/shorts"
-      - "https://www.youtube.com/hashtag/caughtoncamera/shorts"
-      - "https://www.youtube.com/hashtag/sportsfails/shorts"
-      - "https://www.youtube.com/hashtag/skateboardfails/shorts"
-      - "https://www.youtube.com/hashtag/carfails/shorts"
+      - "https://www.youtube.com/hashtag/relatable/shorts"
+      - "https://www.youtube.com/hashtag/couples/shorts"
+      - "https://www.youtube.com/hashtag/awkward/shorts"
       - "https://www.youtube.com/hashtag/awkwardmoments/shorts"
+      - "https://www.youtube.com/hashtag/cringe/shorts"
+      - "https://www.youtube.com/hashtag/secondhandembarrassment/shorts"
+      - "https://www.youtube.com/hashtag/uberprank/shorts"
+      - "https://www.youtube.com/hashtag/rideshareprank/shorts"
+      - "https://www.youtube.com/hashtag/dadprank/shorts"
       - "https://www.youtube.com/hashtag/prankgonewrong/shorts"
-      - "https://www.youtube.com/hashtag/kidsfunny/shorts"
-      - "https://www.youtube.com/hashtag/cookingfails/shorts"
-      - "https://www.youtube.com/hashtag/gymfails/shorts"
-      - "https://www.youtube.com/hashtag/diyfails/shorts"
-      - "https://www.youtube.com/hashtag/weddingfails/shorts"
-      - "https://www.youtube.com/hashtag/bloopers/shorts"
-      - "https://www.youtube.com/hashtag/plottwist/shorts"
-      - "https://www.youtube.com/hashtag/funnymoments/shorts"
-      - "https://www.youtube.com/hashtag/unexpected/shorts"
-      - "https://www.youtube.com/hashtag/funnyanimals/shorts"
+      - "https://www.youtube.com/hashtag/waitforit/shorts"
+      - "https://www.youtube.com/hashtag/caughtoncamera/shorts"
+      - "https://www.youtube.com/hashtag/funnyshorts/shorts"
+      - "https://www.youtube.com/hashtag/comedyshorts/shorts"
+      - "https://www.youtube.com/hashtag/hilarious/shorts"
     search_n: 30
     allow_excluded_chance: 0.15   # 15% of runs ignore the exclude list, so animals still show up now and then
     # clips whose title/tags contain these words are skipped (keeps the channel from turning into an animal channel)
@@ -44,8 +38,8 @@ video:
   loop: auto
   popup:
     at: end
-    end_after: 1.5
-    end_hold: 2.4
+    end_after: 99
+    end_hold: 1.5
 
 detect:
   use_gemini: true
