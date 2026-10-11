@@ -1,4 +1,3 @@
-
 """ShortsBot - auto-make funny YouTube Shorts (clip + melodica + meme popup + sfx).
 
   python run.py init                 create folders + placeholder assets
@@ -98,12 +97,23 @@ def _upload_pending(cfg):
         st.save()
         n += 1
     log(f"uploaded {n} video(s)")
+    if n:
+        (ROOT / "last_post.txt").write_text(str(int(time.time())), encoding="utf-8")
+    return n
+
+
+def _finish(a, made, cfg):
+    """Exit non-zero when nothing was made / uploaded, so GitHub shows a RED run instead of a fake green one."""
+    if not made:
+        log("FAILED: no video was made")
+        sys.exit(1)
+    if a.upload and _upload_pending(cfg) == 0:
+        log("FAILED: nothing was uploaded")
+        sys.exit(1)
 
 
 def cmd_make(a, cfg):
-    made = _make(cfg, a, a.count)
-    if a.upload and made:
-        _upload_pending(cfg)
+    _finish(a, _make(cfg, a, a.count), cfg)
 
 
 def cmd_upload(a, cfg):
@@ -129,9 +139,7 @@ def cmd_daily(a, cfg):
             run_trends(cfg)
         except Exception as e:
             log(f"trend update failed (continuing with the old template): {e}")
-    made = _make(cfg, a, a.count)
-    if a.upload and made:
-        _upload_pending(cfg)
+    _finish(a, _make(cfg, a, a.count), cfg)
 
 
 def main():
