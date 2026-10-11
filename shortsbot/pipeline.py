@@ -127,6 +127,9 @@ def make_one(cfg, state, mode=None, clip_path=None, loop=None, at=None):
     tl = template.get("length_sec", {}).get("median")
     target_len = min(max(tl or vcfg["default_len"], vcfg["min_len"]), vcfg["max_len"])
     popup_pct = template.get("popup_time_pct", {}).get("median") or 0.5
+        # always use the WHOLE clip (never cut it)
+    target_len = dur
+    vcfg = {**vcfg, "max_len": max(vcfg["max_len"], dur)}
     if at:   # you picked the moments, so stretch the video to hold all of them (Shorts max ~59s)
         ts = [t for t, _ in peaks]
         need = (max(ts) - min(ts)) + 6.0
