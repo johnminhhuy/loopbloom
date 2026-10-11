@@ -10,9 +10,6 @@ DEFAULTS = {
         "mode": "local",              # local | reddit | youtube
         "min_seconds": 4,
         "max_seconds": 60,
-        # titles containing any of these words are skipped before download. Empty = skip nothing.
-        # example: ["compilation", "sponsored"]
-        "skip_words": [],
         "reddit": {
             "subreddits": ["funny", "Unexpected", "instant_regret", "nonononoyes", "holdmybeer", "AnimalsBeingDerps"],
             "time": "week",           # hour | day | week | month | year | all
@@ -26,7 +23,7 @@ DEFAULTS = {
     },
     "video": {
         "width": 1080, "height": 1920, "fps": 30,
-        "min_len": 6, "max_len": 60, "default_len": 15,
+        "min_len": 6, "max_len": 25, "default_len": 15,
         "original_volume": 0.45,       # volume of the clip's own audio
         "mute_original": False,
         "music_volume": 0.55,
@@ -35,8 +32,6 @@ DEFAULTS = {
         "loop_if_shorter_than": 8,     # auto mode loops clips shorter than this (seconds)
         "popup": {
             "fullscreen": True,        # meme covers the whole screen (False = centred card, see width_frac)
-            "fit": "auto",             # auto | contain | cover.  contain = whole meme visible on a blurred backdrop,
-                                       # cover = crop to fill the screen, auto = cover only if already phone-shaped
             "duration": 1.0,           # seconds on screen, then a hard cut back to the clip
             "flash": True,             # white-out flashbang at the start
             "flash_hold_frames": 2,    # frames of pure white before it decays

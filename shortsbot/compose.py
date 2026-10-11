@@ -1,6 +1,7 @@
 """Video composition with plain ffmpeg + Pillow (no moviepy)."""
 import math
 import random
+import re
 import shutil
 import tempfile
 from functools import lru_cache
@@ -16,6 +17,18 @@ from .util import ROOT, log, run
 def _amix_has_normalize():
     r = run(["ffmpeg", "-hide_banner", "-h", "filter=amix"], check=False)
     return "normalize" in (r.stdout + r.stderr)
+
+
+def _sfx_gain_db(path, peak_db=-1.0):
+    """How many dB to add so this sound effect's loudest point reaches peak_db.
+    Many downloaded sfx are mastered very quietly (e.g. peak -15 dB), so a plain volume=1.0 is far
+    quieter than the music. Returns 0 if the file can't be measured."""
+    r = run(["ffmpeg", "-hide_banner", "-i", str(path), "-af", "volumedetect", "-vn", "-f", "null", "-"],
+            check=False)
+    m = re.search(r"max_volume:\s*(-?[\d.]+) dB", (r.stdout or "") + (r.stderr or ""))
+    if not m:
+        return 0.0
+    return max(-6.0, min(24.0, peak_db - float(m.group(1))))
 
 
 def prepare_segment(src, start, length, out, fps, has_audio):
@@ -38,48 +51,45 @@ def _has_transparency(img):
     return (a < 250).mean() > 0.02
 
 
-def _blurred_backdrop(img_rgb, W, H, dark=0.8):
-    """Screen-sized soft blurred copy of the picture, used behind a meme that doesn't match 9:16."""
-    bg = ImageOps.fit(img_rgb, (W // 8, H // 8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(4))
-    bg = bg.resize((W, H), Image.BILINEAR)
-    return ImageEnhance.Brightness(bg).enhance(dark)
-
-
-def _layers(img, W, H, fit):
-    """Split the meme into (backdrop, foreground-or-None). The backdrop always fills the whole screen.
-    cover   -> picture is cropped to fill the screen (nothing behind it, no bars, but edges are cut off)
-    contain -> whole picture is visible, backdrop is a blurred copy of it
-    auto    -> cover only when the picture is already close to phone-shaped (9:16), otherwise contain"""
-    if _has_transparency(img):                              # cut-out PNG: sticker on a tinted backdrop
-        arr = np.asarray(img)
-        solid = arr[..., 3] > 200
-        avg = tuple(int(c) for c in arr[..., :3][solid].mean(axis=0)) if solid.any() else (40, 40, 40)
-        flat = Image.new("RGB", img.size, avg)
-        flat.paste(img, mask=img.getchannel("A"))
-        sc = min(W * 0.96 / img.width, H * 0.8 / img.height)
-        fg = img.resize((max(2, int(img.width * sc)), max(2, int(img.height * sc))), Image.LANCZOS)
-        return _blurred_backdrop(flat, W, H), fg
-    rgb = img.convert("RGB")
-    ratio = img.width / img.height
-    mode = fit if fit in ("cover", "contain") else ("cover" if 0.5 <= ratio <= 0.65 else "contain")
-    if mode == "cover":
-        return ImageOps.fit(rgb, (W, H), Image.LANCZOS), None
-    sc = min(W / img.width, H / img.height)
-    fg = rgb.resize((max(2, int(img.width * sc)), max(2, int(img.height * sc))), Image.LANCZOS)
-    return _blurred_backdrop(rgb, W, H), fg
+def _fullscreen_base(img, W, H):
+    """Opaque W x H picture of the meme. Photos are cover-fitted; cut-out PNGs (transparent
+    background) are placed on a blurred, tinted copy of themselves so the whole screen is filled."""
+    if not _has_transparency(img):
+        # A wide photo cover-cropped to a tall phone screen loses its sides (and any text on them).
+        # If the crop would throw away more than ~25% of the width, show the WHOLE picture instead,
+        # centred over a blurred copy of itself. Tall/portrait memes still fill the screen.
+        keep = min(1.0, (W / H) / (img.width / img.height))
+        if keep >= 0.75:
+            return ImageOps.fit(img.convert("RGB"), (W, H), Image.LANCZOS)
+        rgb = img.convert("RGB")
+        bg = ImageOps.fit(rgb, (W // 8, H // 8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(3)).resize((W, H), Image.BILINEAR)
+        bg = ImageEnhance.Brightness(bg).enhance(0.7)
+        scale = min(W / rgb.width, H * 0.8 / rgb.height)
+        fg = rgb.resize((max(2, int(rgb.width * scale)), max(2, int(rgb.height * scale))), Image.LANCZOS)
+        bg.paste(fg, ((W - fg.width) // 2, (H - fg.height) // 2))
+        return bg
+    arr = np.asarray(img)
+    solid = arr[..., 3] > 200
+    avg = tuple(int(c) for c in arr[..., :3][solid].mean(axis=0)) if solid.any() else (40, 40, 40)
+    flat = Image.new("RGB", img.size, avg)
+    flat.paste(img, mask=img.getchannel("A"))
+    bg = ImageOps.fit(flat, (W // 8, H // 8), Image.BILINEAR).filter(ImageFilter.GaussianBlur(4)).resize((W, H), Image.BILINEAR)
+    bg = ImageEnhance.Brightness(bg).enhance(0.8)
+    scale = min(W * 0.96 / img.width, H * 0.8 / img.height)
+    fg = img.resize((max(2, int(img.width * scale)), max(2, int(img.height * scale))), Image.LANCZOS)
+    bg.paste(fg, ((W - fg.width) // 2, (H - fg.height) // 2), fg)
+    return bg
 
 
 def make_pop_frames(meme_path, out_dir, W, H, fps, duration, pc):
     """Pre-render the hit as a PNG sequence: white-out flash -> zoom punch -> screen shake -> hard cut."""
-    img = Image.open(meme_path)
-    img = ImageOps.exif_transpose(img).convert("RGBA")      # phone photos: honour rotation tag
+    img = Image.open(meme_path).convert("RGBA")
     rng = random.Random(7)
     punch, shake = pc["punch_scale"], pc["shake_px"]
     hold = pc["flash_hold_frames"] if pc["flash"] else 0
     hold_t = hold / fps
     fullscreen = pc["fullscreen"]
-    if fullscreen:
-        backdrop, fg = _layers(img, W, H, pc.get("fit", "auto"))
+    base = _fullscreen_base(img, W, H) if fullscreen else None
     n = max(3, int(round(duration * fps)))
     for i in range(n):
         t = i / fps
@@ -88,24 +98,15 @@ def make_pop_frames(meme_path, out_dir, W, H, fps, duration, pc):
         dx, dy = rng.uniform(-amp, amp), rng.uniform(-amp, amp)
         rot = rng.uniform(-1, 1) * 2.0 * math.exp(-t * 10)
         if fullscreen:
-            # backdrop only needs spare edge while it is shaking/rotating, so at rest nothing is cropped
-            margin = 1.0 + (2 * amp + 2 * H * math.sin(math.radians(abs(rot))) + 4) / W
-            cover = margin * (s if fg is None else 1.0)
-            bg = backdrop.resize((int(W * cover), int(H * cover)), Image.LANCZOS)
+            cover = 1.12 * s                                  # 12% margin so shake never shows edges
+            fr = base.resize((int(W * cover), int(H * cover)), Image.LANCZOS)
             if abs(rot) > 0.05:
-                bg = bg.rotate(rot, resample=Image.BICUBIC)
-            l = min(max(int((bg.width - W) / 2 + dx), 0), bg.width - W)
-            u = min(max(int((bg.height - H) / 2 + dy), 0), bg.height - H)
-            frame = bg.crop((l, u, l + W, u + H)).convert("RGBA")
-            if fg is not None:
-                m = fg.convert("RGBA")
-                if s != 1.0:
-                    m = m.resize((max(2, int(m.width * s)), max(2, int(m.height * s))), Image.LANCZOS)
-                if abs(rot) > 0.05:
-                    m = m.rotate(rot, resample=Image.BICUBIC, expand=True)
-                frame.alpha_composite(m, (int((W - m.width) / 2 + dx), int((H - m.height) / 2 + dy))) \
-                    if (W - m.width) / 2 + dx >= 0 and (H - m.height) / 2 + dy >= 0 else \
-                    frame.paste(m, (int((W - m.width) / 2 + dx), int((H - m.height) / 2 + dy)), m)
+                fr = fr.rotate(rot, resample=Image.BICUBIC)
+            l = int((fr.width - W) / 2 + dx)
+            u = int((fr.height - H) / 2 + dy)
+            l = min(max(l, 0), fr.width - W)
+            u = min(max(u, 0), fr.height - H)
+            frame = fr.crop((l, u, l + W, u + H))
         else:
             w0 = int(W * pc["width_frac"])
             m = img.resize((w0, max(2, int(img.height * w0 / img.width))), Image.LANCZOS)
@@ -131,12 +132,12 @@ def make_pop_frames(meme_path, out_dir, W, H, fps, duration, pc):
     return n
 
 
-def compose(seg, out, *, music, meme, sfx, popup_times, loops, seg_len, vcfg):
+def compose(seg, out, *, music, meme, sfx, popup_times, loops, seg_len, vcfg, tail=0.0):
     """seg: prepared segment. popup_times: seconds (in final timeline). Returns output path."""
     W, H, fps = vcfg["width"], vcfg["height"], vcfg["fps"]
     pc = vcfg["popup"]
-    total = seg_len * loops
-    pdur = pc["duration"]
+    total = seg_len * loops + tail          # tail = extra seconds after the clip (meme-at-the-end mode)
+    pdur = tail if tail > 0 else pc["duration"]
     work = Path(tempfile.mkdtemp(prefix="pop_", dir=str(ROOT / "work")))
     try:
         frames = None
@@ -166,7 +167,11 @@ def compose(seg, out, *, music, meme, sfx, popup_times, loops, seg_len, vcfg):
                 idx += 1
 
         f = []
-        f.append("[0:v]split=2[bgsrc][fgsrc]")
+        if tail > 0:   # hold the last frame so nothing of the clip is hidden behind the meme
+            f.append(f"[0:v]tpad=stop_mode=clone:stop_duration={tail:.3f}[v_in]")
+        else:
+            f.append("[0:v]null[v_in]")
+        f.append("[v_in]split=2[bgsrc][fgsrc]")
         f.append("[bgsrc]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,"
                  "boxblur=8:2,eq=brightness=-0.2:saturation=0.9,scale=%d:%d,setsar=1[bg]" % (W, H))
         f.append("[fgsrc]scale=%d:%d:force_original_aspect_ratio=decrease,"
@@ -182,6 +187,8 @@ def compose(seg, out, *, music, meme, sfx, popup_times, loops, seg_len, vcfg):
 
         # ---- audio (clip + music duck under the hit so the sfx slams)
         duck_level, duck_len = pc.get("duck", 1.0), pc.get("duck_len", 0.6)
+        if tail > 0:
+            duck_len = max(duck_len, tail)      # keep the music down for the whole meme
         expr = ""
         if duck_level < 1.0 and popup_times:
             terms = [f"between(t,{T:.3f},{T + duck_len:.3f})" for T in popup_times]
@@ -197,15 +204,20 @@ def compose(seg, out, *, music, meme, sfx, popup_times, loops, seg_len, vcfg):
         fmt = "aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo"
         labels = []
         if not vcfg.get("mute_original"):
-            f.append(f"[0:a]{fmt},{vol(vcfg['original_volume'])}[a0]")
+            pad = f",apad=pad_dur={tail:.3f}" if tail > 0 else ""
+            f.append(f"[0:a]{fmt}{pad},{vol(vcfg['original_volume'])}[a0]")
             labels.append("a0")
         if music_idx is not None:
             fo = max(0.0, total - 0.4)
             f.append(f"[{music_idx}:a]{fmt},{vol(vcfg['music_volume'])},afade=t=out:st={fo:.3f}:d=0.4[am]")
             labels.append("am")
+        gain_db = 0.0
+        if sfx and vcfg.get("sfx_normalize", True):
+            gain_db = _sfx_gain_db(sfx, float(vcfg.get("sfx_peak_db", -1.0)))
+            log(f"sfx boosted by {gain_db:+.1f} dB so it is not buried under the music")
         for k, (T, si) in enumerate(zip(popup_times, sfx_idx)):
             ms = int(T * 1000)
-            f.append(f"[{si}:a]{fmt},adelay={ms}|{ms},volume={vcfg['sfx_volume']}[s{k}]")
+            f.append(f"[{si}:a]{fmt},volume={gain_db:.2f}dB,adelay={ms}|{ms},volume={vcfg['sfx_volume']}[s{k}]")
             labels.append(f"s{k}")
         n = len(labels)
         if n == 0:
