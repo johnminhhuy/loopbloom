@@ -1,57 +1,25 @@
 # ShortsBot settings. Anything you leave out uses the built-in default (see shortsbot/config.py).
 
 source:
-  mode: youtube          # local (inbox/ folder) | reddit | youtube
-  max_seconds: 59        # skip source clips longer than this
+  mode: reddit            # local (inbox/ folder) | reddit | youtube
+  max_seconds: 60         # longer clips are skipped (never cut) - the whole clip is always used
   reddit:
-    subreddits: [funny, Unexpected, instant_regret, nonononoyes]
+    subreddits: [funny, Unexpected, instant_regret, nonononoyes, AnimalsBeingDerps]
     time: week
   youtube:
-    queries:
-      - "https://www.youtube.com/@FailArmy/shorts"
-      - "https://www.youtube.com/@AFV/shorts"
-      - "https://www.youtube.com/hashtag/fails/shorts"
-      - "https://www.youtube.com/hashtag/funnyfails/shorts"
-      - "https://www.youtube.com/hashtag/instantregret/shorts"
-      - "https://www.youtube.com/hashtag/caughtoncamera/shorts"
-      - "https://www.youtube.com/hashtag/sportsfails/shorts"
-      - "https://www.youtube.com/hashtag/skateboardfails/shorts"
-      - "https://www.youtube.com/hashtag/carfails/shorts"
-      - "https://www.youtube.com/hashtag/awkwardmoments/shorts"
-      - "https://www.youtube.com/hashtag/prankgonewrong/shorts"
-      - "https://www.youtube.com/hashtag/kidsfunny/shorts"
-      - "https://www.youtube.com/hashtag/cookingfails/shorts"
-      - "https://www.youtube.com/hashtag/gymfails/shorts"
-      - "https://www.youtube.com/hashtag/diyfails/shorts"
-      - "https://www.youtube.com/hashtag/weddingfails/shorts"
-      - "https://www.youtube.com/hashtag/bloopers/shorts"
-      - "https://www.youtube.com/hashtag/plottwist/shorts"
-      - "https://www.youtube.com/hashtag/funnymoments/shorts"
-      - "https://www.youtube.com/hashtag/unexpected/shorts"
-      - "https://www.youtube.com/hashtag/funnyanimals/shorts"
-    search_n: 30
-    allow_excluded_chance: 0.15   # 15% of runs ignore the exclude list, so animals still show up now and then
-    # clips whose title/tags contain these words are skipped (keeps the channel from turning into an animal channel)
-    exclude_words: [dog, puppy, puppies, doggo, cat, kitten, kitty, animal, pet, bird, horse, cow, monkey, bear, lion, duck, goat, pig, fox, baby animal, wildlife, zoo]
+    queries: ["funny fail", "funny animals", "unexpected moment"]
     creative_commons_only: false
+
 video:
-  min_len: 8
-  max_len: 25
-  default_len: 15
-  original_volume: 0.8
-  music_volume: 0.2
-  sfx_volume: 0.5
-  loop: auto
-  popup:
-    at: end
-    end_after: 1.5
-    end_hold: 2.4
+  min_len: 6
+  default_len: 15         # TrendWatcher overrides this with the trending median
+  original_volume: 0.45   # the clip's own sound
+  music_volume: 0.55
+  sfx_volume: 1.0
+  loop: auto              # auto | always | never
 
 detect:
-  use_gemini: true
-  max_popups: 3          # 1 = old behaviour, a single popup
-  popup_gap: 3.0         # minimum seconds between popups
-  extra_threshold: 0.6   # lower (0.4) = more popups, higher (0.8) = only big moments
+  use_gemini: false       # true = ask Gemini where the funny moment is (needs GEMINI_API_KEY)
 
 upload:
   privacy: public         # unverified API projects are forced to private by YouTube until audited

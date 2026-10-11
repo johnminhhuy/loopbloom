@@ -24,6 +24,17 @@ class Clip:
     url: str = ""
 
 
+# ---------------------------------------------------------------- title filter
+def bad_title(title, cfg):
+    """Return the matched skip-word if the title looks like a ranking / comparison / compilation, else None."""
+    import re
+    t = (title or "").lower()
+    for w in cfg["source"].get("skip_words", []):
+        if re.search(r"(?<![a-z0-9])" + re.escape(w.lower()) + r"(?![a-z0-9])", t):
+            return w
+    return None
+
+
 # ---------------------------------------------------------------- local
 def from_path(path):
     p = Path(path)
@@ -42,12 +53,6 @@ def fetch_local(cfg, state):
 
 
 # ---------------------------------------------------------------- yt-dlp helper
-def _cookie_args():
-    """Optional cookies.txt next to run.py (the GitHub workflow writes it from the YT_COOKIES secret)."""
-    c = ROOT / "cookies.txt"
-    return ["--cookies", str(c)] if c.exists() else []
-
-
 def _download(url, out_stem, extra=None):
     if not have("yt-dlp"):
         raise RuntimeError("yt-dlp is not installed (pip install yt-dlp)")
@@ -57,7 +62,8 @@ def _download(url, out_stem, extra=None):
         out.unlink()
     cmd = ["yt-dlp", "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
            "--no-playlist", "--quiet", "--no-warnings", "-o", out, url]
-    cmd[1:1] = _cookie_args() + (extra or [])
+    if extra:
+        cmd[1:1] = extra
     run(cmd)
     if not out.exists():
         raise RuntimeError("download produced no file")
@@ -89,6 +95,10 @@ def fetch_reddit(cfg, state):
                 continue
             if state.used("reddit:" + p["id"]):
                 continue
+            hit = bad_title(p.get("title", ""), cfg)
+            if hit:
+                log(f"skip (title has {hit!r}): {p.get('title', '')[:60]}")
+                continue
             cands.append(p)
         random.shuffle(cands)
         for p in cands[:4]:
@@ -107,71 +117,42 @@ def fetch_reddit(cfg, state):
 
 # ---------------------------------------------------------------- youtube
 def fetch_youtube(cfg, state):
-    """Try up to 4 random sources from the query list until one gives a usable clip."""
-    qs = list(cfg["source"]["youtube"]["queries"])
-    random.shuffle(qs)
-    last = None
-    for q in qs[:4]:
-        try:
-            return _fetch_youtube_from(q, cfg, state)
-        except Exception as ex:
-            last = ex
-            log(f"source {q!r} gave nothing, trying another ({str(ex)[:150]})")
-    raise RuntimeError(f"no usable youtube clip in 4 tries (last: {last})")
-
-
-def _fetch_youtube_from(q, cfg, state):
-    """q may be plain search words OR a full YouTube URL (a channel's /shorts tab or a hashtag's /shorts tab)."""
     yc = cfg["source"]["youtube"]
     lo, hi = cfg["source"]["min_seconds"], cfg["source"]["max_seconds"]
-    log(f"youtube source: {q!r}")
-    n = yc["search_n"]
-    target = q if q.startswith("http") else f"ytsearch{n}:{q}"
-    r = run(["yt-dlp", *_cookie_args(), "--flat-playlist", "--playlist-end", str(n), "--dump-json",
-             "--quiet", "--no-warnings", target])
+    q = random.choice(yc["queries"])
+    log(f"youtube search: {q!r}")
+    r = run(["yt-dlp", "--flat-playlist", "--dump-json", "--quiet", "--no-warnings",
+             f"ytsearch{yc['search_n']}:{q}"])
     entries = []
     for line in r.stdout.splitlines():
         try:
             entries.append(json.loads(line))
         except Exception:
             pass
-    log(f"search returned {len(entries)} entries")
-    fresh = [e for e in entries if e.get("id") and not state.used("yt:" + e["id"])]
-    words = yc.get("exclude_words") or []
-    if words and random.random() < float(yc.get("allow_excluded_chance", 0)):
-        log("this run: excluded topics allowed (variety)")
-        words = []
-    if words:
-        import re
-        pat = re.compile(r"\b(" + "|".join(re.escape(w) for w in words) + r")s?\b", re.I)
-        kept = [e for e in fresh if not pat.search((e.get("title") or "") + " " + " ".join(e.get("tags") or []))]
-        log(f"exclude_words removed {len(fresh) - len(kept)} of {len(fresh)} clips")
-        fresh = kept
-    known = [e for e in fresh if e.get("duration") and lo <= e["duration"] <= hi]
-    unknown = [e for e in fresh if not e.get("duration")]   # checked after download
-    log(f"{len(known)} in {lo}-{hi}s, {len(unknown)} with unknown length")
-    random.shuffle(known)
-    random.shuffle(unknown)
+    cands = []
+    for e in entries:
+        if not (e.get("duration") and lo <= e["duration"] <= hi) or state.used("yt:" + e["id"]):
+            continue
+        hit = bad_title(e.get("title", ""), cfg)
+        if hit:
+            log(f"skip (title has {hit!r}): {e.get('title', '')[:60]}")
+            continue
+        cands.append(e)
+    random.shuffle(cands)
     extra = None
     if yc.get("creative_commons_only"):
         extra = ["--match-filters", "license*=Creative Commons"]
-    for e in (known + unknown)[:8]:
+    for e in cands[:8]:
         link = f"https://www.youtube.com/watch?v={e['id']}"
         try:
             path = _download(link, "yt_" + e["id"], extra)
-            d = probe(path)["duration"]
-            if not (lo <= d <= hi):
-                path.unlink()
-                log(f"skip {e['id']}: {d:.0f}s is outside {lo}-{hi}s")
-                continue
         except Exception as ex:
-            log(f"skip {e['id']}: {' | '.join(str(ex).splitlines()[1:])[-400:] or str(ex)[:200]}")
+            log(f"skip {e['id']}: {str(ex)[:120]}")
             continue
         who = e.get("channel") or e.get("uploader") or "unknown"
         return Clip(id="yt:" + e["id"], path=path, title=e.get("title", ""),
                     credit=f"{who} - {link}", source="youtube", author=who, url=link)
-    raise RuntimeError(f"no usable youtube clip found ({len(entries)} results, "
-                       f"{len(known)} in the {lo}-{hi}s range)")
+    raise RuntimeError("no usable youtube clip found")
 
 
 def fetch(cfg, state, mode=None):
