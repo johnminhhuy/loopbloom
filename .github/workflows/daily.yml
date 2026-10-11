@@ -1,9 +1,5 @@
 name: daily-shorts
 on:
-  schedule:
-    # Checks every hour (GitHub skips some scheduled runs, so one check is not enough).
-    # The "gap" step below only lets a run continue if the last post was >7.5h ago = ~3 posts/day.
-    - cron: "7 * * * *"
   workflow_dispatch:
     inputs:
       count:
