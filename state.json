@@ -28,7 +28,8 @@
     "yt:KT-Quzu2y54",
     "yt:gQXvXFb3Sek",
     "yt:OC4mfEJBJpk",
-    "yt:qd1BVBdIpfc"
+    "yt:qd1BVBdIpfc",
+    "yt:opVpp-i2h6w"
   ],
   "recent": {
     "music": [
@@ -60,7 +61,8 @@
       "Let me know.mp3",
       "CLUTTERFUNK - GEOMETRY DASH.mp3",
       "phoebe.mp3",
-      "Let me know.mp3"
+      "Let me know.mp3",
+      "CLUTTERFUNK - GEOMETRY DASH.mp3"
     ],
     "memes": [
       "son-meme.jpg",
@@ -91,9 +93,11 @@
       "cryingFace.png",
       "son-meme.jpg",
       "aiBaby.png",
-      "son-meme.jpg"
+      "son-meme.jpg",
+      "cryingFace.png"
     ],
     "sfx": [
+      "fahhh_KcgAXfs.mp3",
       "fahhh_KcgAXfs.mp3",
       "fahhh_KcgAXfs.mp3",
       "fahhh_KcgAXfs.mp3",
@@ -283,6 +287,12 @@
       "clip_id": "yt:qd1BVBdIpfc",
       "uploaded": true,
       "youtube_id": "nqxJhWZNAoo"
+    },
+    {
+      "file": "short_20261014_110801.mp4",
+      "clip_id": "yt:opVpp-i2h6w",
+      "uploaded": true,
+      "youtube_id": "3idaeqeveLo"
     }
   ],
   "last_trend_run": null
