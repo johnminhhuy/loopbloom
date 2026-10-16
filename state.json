@@ -34,7 +34,8 @@
     "yt:Q_2tvFEfAI8",
     "yt:T_JVmlCRFVw",
     "yt:ldkPX-vcpjM",
-    "yt:57v2hGnTyAI"
+    "yt:57v2hGnTyAI",
+    "yt:Bk6DJdts__s"
   ],
   "recent": {
     "music": [
@@ -47,7 +48,6 @@
       "CLUTTERFUNK - GEOMETRY DASH.mp3",
       "CLUTTERFUNK - GEOMETRY DASH.mp3",
       "CLUTTERFUNK - GEOMETRY DASH.mp3",
-      "CLUTTERFUNK - GEOMETRY DASH.mp3",
       "Heaven knows im miserable now.mp3",
       "phoebe.mp3",
       "Let me know.mp3",
@@ -67,7 +67,8 @@
       "Heaven knows im miserable now.mp3",
       "CLUTTERFUNK - GEOMETRY DASH.mp3",
       "Let me know.mp3",
-      "phoebe.mp3"
+      "phoebe.mp3",
+      "Heaven knows im miserable now.mp3"
     ],
     "memes": [
       "son-meme.jpg",
@@ -79,7 +80,6 @@
       "son-meme.jpg",
       "son-meme.jpg",
       "son-meme.jpg",
-      "son-meme.jpg",
       "aiBaby.png",
       "cryingFace.png",
       "son-meme.jpg",
@@ -99,7 +99,8 @@
       "son-meme.jpg",
       "aiBaby.png",
       "son-meme.jpg",
-      "aiBaby.png"
+      "aiBaby.png",
+      "son-meme.jpg"
     ],
     "sfx": [
       "fahhh_KcgAXfs.mp3",
@@ -328,6 +329,12 @@
       "clip_id": "yt:57v2hGnTyAI",
       "uploaded": true,
       "youtube_id": "tNrn3DIcofY"
+    },
+    {
+      "file": "short_20261016_110806.mp4",
+      "clip_id": "yt:Bk6DJdts__s",
+      "uploaded": true,
+      "youtube_id": "59qXqga9gCk"
     }
   ],
   "last_trend_run": null
