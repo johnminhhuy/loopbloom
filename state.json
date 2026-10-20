@@ -49,11 +49,11 @@
     "yt:rVqe_U7mqAw",
     "yt:Ej4EHxeJseY",
     "yt:Jba-7rbU6r0",
-    "yt:-qaWJcZcVwI"
+    "yt:-qaWJcZcVwI",
+    "yt:DYnZBmaccvo"
   ],
   "recent": {
     "music": [
-      "Heaven knows im miserable now.mp3",
       "Let me know.mp3",
       "Heaven knows im miserable now.mp3",
       "Let me know.mp3",
@@ -82,11 +82,11 @@
       "Let me know.mp3",
       "phoebe.mp3",
       "Heaven knows im miserable now.mp3",
-      "phoebe.mp3"
+      "phoebe.mp3",
+      "Heaven knows im miserable now.mp3"
     ],
     "memes": [
       "aiBaby.png",
-      "aiBaby.png",
       "son-meme.jpg",
       "son-meme.jpg",
       "son-meme.jpg",
@@ -114,6 +114,7 @@
       "son-meme.jpg",
       "aiBaby.png",
       "aiBaby.png",
+      "cryingFace.png",
       "cryingFace.png"
     ],
     "sfx": [
@@ -433,6 +434,12 @@
       "clip_id": "yt:-qaWJcZcVwI",
       "uploaded": true,
       "youtube_id": "QQW9sCSZ7fI"
+    },
+    {
+      "file": "short_20261020_050808.mp4",
+      "clip_id": "yt:DYnZBmaccvo",
+      "uploaded": true,
+      "youtube_id": "7xcmQGmCPw4"
     }
   ],
   "last_trend_run": null
